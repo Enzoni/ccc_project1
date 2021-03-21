@@ -50,10 +50,9 @@ class Message:
     #
     def find_region_id(self, regions):
         for region in regions:
-            if region.xmin <= self.coordinates[0] < region.xman and region.ymin <= self.coordinates[1] < region.yman:
+            if region.xmin <= self.coordinates[0] < region.xmax and region.ymin <= self.coordinates[1] < region.ymax:
                 self.region_id = region.region_id
-        region = ''
-        return region
+                return
 
     # calculate sentiment_score
     def cal_sentiment_score(self, sentiment_dic):
