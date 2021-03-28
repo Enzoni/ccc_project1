@@ -80,6 +80,20 @@ if __name__ == '__main__':
     grid_file_name = 'data/melbGrid.json'
     message_file_nmae = 'data/tinyTwitter.json'
 
+    # read grid data
+    if rank == 0:
+        regions = read_grid_info(grid_file_name)
+    else:
+        regions = None
+    # broadcast grid data
+    regions = comm.bcast(regions, root=0)
+
+    # TODO 检查 regions
+    # print('rank:', rank)
+    # for i in regions:
+    #     i.print_all()
+
+
     # read sentiment file
     with open(sentiment_file_name, "r") as f:
         data = f.read()
@@ -90,12 +104,6 @@ if __name__ == '__main__':
     for i, j in sentiment_data:
         sentiment_dic[i] = j
 
-
-    # read grid data
-    regions = read_grid_info(grid_file_name)
-    # TODO 检查 regions
-    # for i in regions:
-    #     i.print_all()
 
 
     # read tweet message
