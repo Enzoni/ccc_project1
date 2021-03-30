@@ -83,16 +83,12 @@ def read_twitters_data(s):
     :param s: str all information for current Tweets
     :return: dictionary: convert str into dictionary
     """
-    s = s.strip().rstrip(',')
+    s = s.strip().rstrip(',]}') + '}}'
     try:
         out = json.loads(s)
         return out
     except:
-        try:
-            out = json.loads(s[:-2])
-            return out
-        except:
-            return
+        return
 
 
 def read_sentiment_data(sentiment_file_name):
