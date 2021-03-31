@@ -53,6 +53,12 @@ class Message:
                 word = word[:-1]
             if word in sentiment_dic.keys():
                 self.sentiment_score += sentiment_dic[word]
+        for i in range(len(words)-1):
+            curr = ' '.join(words[i:i + 2])
+            if curr[-1] in ['!', ',', '?', '.', "'", '"']:
+                curr = curr[:-1]
+            if curr in sentiment_dic.keys():
+                self.sentiment_score += sentiment_dic[curr]
 
     def update_score(self, regions):
         """
