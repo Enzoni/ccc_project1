@@ -1,4 +1,5 @@
 import json
+import sys
 from itertools import islice, product
 from collections import defaultdict
 
@@ -53,7 +54,7 @@ class Message:
                 word = word[:-1]
             if word in sentiment_dic.keys():
                 self.sentiment_score += sentiment_dic[word]
-        for i in range(len(words)-1):
+        for i in range(len(words) - 1):
             curr = ' '.join(words[i:i + 2])
             if curr[-1] in ['!', ',', '?', '.', "'", '"']:
                 curr = curr[:-1]
@@ -132,10 +133,14 @@ def sum_regions(regions_list):
 
 
 if __name__ == '__main__':
-    tweets_file = r'C:\Users\enzon\Desktop\ccc_1\data\smallTwitter.json'
-    sentiment_dic_file_name = "data/AFINN.txt"
-    grid_file_name = 'data/melbGrid.json'
-    message_file_nmae = 'data/tinyTwitter.json'
+    try:
+        grid_file_name = sys.argv[1]
+        sentiment_dic_file_name = sys.argv[2]
+        tweets_file = sys.argv[3]
+    except IndexError:
+        grid_file_name = 'melbGrid.json'
+        sentiment_dic_file_name = 'AFINN.txt'
+        tweets_file = 'smallTwitter.json'
 
     if rank == 0:
         # read grid data
@@ -167,7 +172,6 @@ if __name__ == '__main__':
         while True:
             # process twitters data
             twitters_data = comm.recv(source=0, tag=4)
-
             if twitters_data is None:
                 break
 
