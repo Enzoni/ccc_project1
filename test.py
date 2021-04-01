@@ -1,5 +1,4 @@
 import json
-import sys
 from itertools import islice, product
 from collections import defaultdict
 
@@ -42,24 +41,19 @@ class Message:
         self.coordinates = info['value']['geometry']['coordinates']
         self.sentiment_score = 0
 
-    def cal_sentiment_score(self, sentiment_dic):
+    def cal_sentiment_score(self, sentiment_dic, max_sentiment_word_len):
         """
         calculate sentiment_score
         :param sentiment_dic: dictionary, key: word, value: sentiment score
         """
         words = self.text.split()
-        for word in words:
-            # check if the word is with a punctuation
-            if word[-1] in ['!', ',', '?', '.', "'", '"']:
-                word = word[:-1]
-            if word in sentiment_dic.keys():
-                self.sentiment_score += sentiment_dic[word]
-        for i in range(len(words) - 1):
-            curr = ' '.join(words[i:i + 2])
-            if curr[-1] in ['!', ',', '?', '.', "'", '"']:
-                curr = curr[:-1]
-            if curr in sentiment_dic.keys():
-                self.sentiment_score += sentiment_dic[curr]
+        for word_len in range(max_sentiment_word_len):
+            for i in range(len(words)-word_len):
+                curr = ' '.join(words[i:i + word_len+1])
+                if curr[-1] in ['!', ',', '?', '.', "'", '"']:
+                    curr = curr[:-1]
+                if curr in sentiment_dic.keys():
+                    self.sentiment_score += sentiment_dic[curr]
 
     def update_score(self, regions):
         """
@@ -133,24 +127,22 @@ def sum_regions(regions_list):
 
 
 if __name__ == '__main__':
-    try:
-        grid_file_name = sys.argv[1]
-        sentiment_dic_file_name = sys.argv[2]
-        tweets_file = sys.argv[3]
-    except IndexError:
-        grid_file_name = 'melbGrid.json'
-        sentiment_dic_file_name = 'AFINN.txt'
-        tweets_file = 'smallTwitter.json'
+    tweets_file = r'C:\Users\enzon\Desktop\ccc_1\data\smallTwitter.json'
+    sentiment_dic_file_name = "data/AFINN.txt"
+    grid_file_name = 'data/melbGrid.json'
+    message_file_nmae = 'data/tinyTwitter.json'
 
     if rank == 0:
         # read grid data
         regions = read_grid_info(grid_file_name)
         sentiment_dic = read_sentiment_data(sentiment_dic_file_name)
+        max_sentiment_word_len = max([len(i.split()) for i in sentiment_dic.keys()])
     else:
-        regions, sentiment_dic = None, None
+        regions, sentiment_dic, max_sentiment_word_len = None, None, None
     # broadcast grid data
     regions = comm.bcast(regions, root=0)
     sentiment_dic = comm.bcast(sentiment_dic, root=0)
+    max_sentiment_word_len = comm.bcast(max_sentiment_word_len, root=0)
 
     if not regions or not sentiment_dic:
         raise FileNotFoundError()
@@ -172,6 +164,7 @@ if __name__ == '__main__':
         while True:
             # process twitters data
             twitters_data = comm.recv(source=0, tag=4)
+
             if twitters_data is None:
                 break
 
@@ -179,7 +172,7 @@ if __name__ == '__main__':
             for i in twitters_data:
                 try:
                     curr_message = Message(i)
-                    curr_message.cal_sentiment_score(sentiment_dic)
+                    curr_message.cal_sentiment_score(sentiment_dic, max_sentiment_word_len)
                     curr_message.update_score(regions)
                 except:
                     continue
