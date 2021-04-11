@@ -31,3 +31,7 @@ module load Python/3.4.3-goolf-2015a
 mpirun python3 test.py melbGrid.json AFINN.txt tinyTwitter.json
 mpirun python3 test.py melbGrid.json AFINN.txt smallTwitter.json
 mpirun python3 test.py melbGrid.json AFINN.txt bigTwitter.json
+
+# Time count
+time mpirun python proj.py -t "tinyTwitter.json" -g "melbGrid.json"
+echo
