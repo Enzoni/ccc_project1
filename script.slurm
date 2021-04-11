@@ -25,13 +25,15 @@ fi
 # Run the job from the directory where it was launched (default)
 
 # The modules to load:
-module load Python/3.4.3-goolf-2015a
+module load gcc/8.3.0 openmpi/3.1.4 python/3.7.4
 
+echo "nodes=2 ntasks=4"
 # The job command(s):
-mpirun python3 test.py melbGrid.json AFINN.txt tinyTwitter.json
-mpirun python3 test.py melbGrid.json AFINN.txt smallTwitter.json
-mpirun python3 test.py melbGrid.json AFINN.txt bigTwitter.json
+echo "tinyTwitter output:"
+time mpirun python3 test.py melbGrid.json AFINN.txt tinyTwitter.json
 
-# Time count
-time mpirun python proj.py -t "tinyTwitter.json" -g "melbGrid.json"
-echo
+echo "smallTwitter output:"
+time mpirun python3 test.py melbGrid.json AFINN.txt smallTwitter.json
+
+echo "bigTwitter output:"
+time mpirun python3 test.py melbGrid.json AFINN.txt bigTwitter.json
