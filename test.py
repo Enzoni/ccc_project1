@@ -1,12 +1,9 @@
 import json
+import sys
 from itertools import islice, product
 from collections import defaultdict
 
 from mpi4py import MPI
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 BATCH_SIZE = 32
 
@@ -48,8 +45,8 @@ class Message:
         """
         words = self.text.split()
         for word_len in range(max_sentiment_word_len):
-            for i in range(len(words)-word_len):
-                curr = ' '.join(words[i:i + word_len+1])
+            for i in range(len(words) - word_len):
+                curr = ' '.join(words[i:i + word_len + 1])
                 if curr[-1] in ['!', ',', '?', '.', "'", '"']:
                     curr = curr[:-1]
                 if curr in sentiment_dic.keys():
@@ -61,7 +58,7 @@ class Message:
         :param regions: list(Region)
         """
         for region in regions:
-            if region.xmin <= self.coordinates[0] < region.xmax and region.ymin <= self.coordinates[1] < region.ymax:
+            if region.xmin <= self.coordinates[0] < region.xmax and region.ymin < self.coordinates[1] <= region.ymax:
                 region.count += 1
                 region.score += self.sentiment_score
 
@@ -126,58 +123,146 @@ def sum_regions(regions_list):
         print(f'{i:<8}' f'{cnt_tweets[i]:^15}' f'{cnt_score[i]:^25}')
 
 
-if __name__ == '__main__':
-    tweets_file = r'C:\Users\enzon\Desktop\ccc_1\data\smallTwitter.json'
-    sentiment_dic_file_name = "data/AFINN.txt"
-    grid_file_name = 'data/melbGrid.json'
-    message_file_nmae = 'data/tinyTwitter.json'
-
-    if rank == 0:
+def main(rank, size, tweets_file, grid_file_name, sentiment_dic_file_name):
+    # if only have one process
+    if size == 1:
         # read grid data
         regions = read_grid_info(grid_file_name)
         sentiment_dic = read_sentiment_data(sentiment_dic_file_name)
         max_sentiment_word_len = max([len(i.split()) for i in sentiment_dic.keys()])
-    else:
-        regions, sentiment_dic, max_sentiment_word_len = None, None, None
-    # broadcast grid data
-    regions = comm.bcast(regions, root=0)
-    sentiment_dic = comm.bcast(sentiment_dic, root=0)
-    max_sentiment_word_len = comm.bcast(max_sentiment_word_len, root=0)
 
-    if not regions or not sentiment_dic:
-        raise FileNotFoundError()
-
-    # read sentiment file
-    if rank == 0:
         with open(tweets_file, 'r', encoding='utf-8') as twitter_file:
             # read total_rows and offset info
             twitters_data = next(twitter_file)
             i = 0
             while twitters_data:
                 twitters_data = list(islice(twitter_file, BATCH_SIZE))
-                comm.send(twitters_data, dest=i % (size - 1) + 1, tag=4)
-                i += 1
-        for i in range(1, size):
-            comm.send(None, dest=i, tag=4)
 
+                twitters_data = list(map(read_twitters_data, twitters_data))
+                for j in twitters_data:
+                    try:
+                        curr_message = Message(j)
+                        curr_message.cal_sentiment_score(sentiment_dic, max_sentiment_word_len)
+                        curr_message.update_score(regions)
+                    except:
+                        continue
+
+        # collect and sum up information
+        sum_regions([regions])
+    # have more than one process
     else:
-        while True:
-            # process twitters data
-            twitters_data = comm.recv(source=0, tag=4)
+        if rank == 0:
+            # read grid data
+            regions = read_grid_info(grid_file_name)
+            sentiment_dic = read_sentiment_data(sentiment_dic_file_name)
+            max_sentiment_word_len = max([len(i.split()) for i in sentiment_dic.keys()])
+        else:
+            regions, sentiment_dic, max_sentiment_word_len = None, None, None
+        # broadcast grid data
+        regions = comm.bcast(regions, root=0)
+        sentiment_dic = comm.bcast(sentiment_dic, root=0)
+        max_sentiment_word_len = comm.bcast(max_sentiment_word_len, root=0)
 
-            if twitters_data is None:
-                break
+        if not regions or not sentiment_dic:
+            raise FileNotFoundError()
 
-            twitters_data = list(map(read_twitters_data, twitters_data))
-            for i in twitters_data:
-                try:
-                    curr_message = Message(i)
-                    curr_message.cal_sentiment_score(sentiment_dic, max_sentiment_word_len)
-                    curr_message.update_score(regions)
-                except:
-                    continue
+        # read sentiment file
+        if rank == 0:
+            with open(tweets_file, 'r', encoding='utf-8') as twitter_file:
+                # read total_rows and offset info
+                twitters_data = next(twitter_file)
+                i = 0
+                while twitters_data:
+                    twitters_data = list(islice(twitter_file, BATCH_SIZE))
+                    comm.send(twitters_data, dest=i % (size - 1) + 1, tag=4)
+                    i += 1
+            for i in range(1, size):
+                comm.send(None, dest=i, tag=4)
 
-    # collect and sum up information
-    regions = comm.gather(regions, root=0)
-    if rank == 0:
-        sum_regions(regions)
+        else:
+            while True:
+                # process twitters data
+                twitters_data = comm.recv(source=0, tag=4)
+
+                if twitters_data is None:
+                    break
+
+                twitters_data = list(map(read_twitters_data, twitters_data))
+                for i in twitters_data:
+                    try:
+                        curr_message = Message(i)
+                        curr_message.cal_sentiment_score(sentiment_dic, max_sentiment_word_len)
+                        curr_message.update_score(regions)
+                    except:
+                        continue
+
+        # collect and sum up information
+        regions = comm.gather(regions, root=0)
+        if rank == 0:
+            sum_regions(regions)
+
+
+if __name__ == '__main__':
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    try:
+        tweets_file = sys.argv[1]
+        grid_file_name = 'melbGrid.json'
+        sentiment_dic_file_name = "data/AFINN.txt"
+    except:
+        tweets_file = 'data/smallTwitter.json'
+        grid_file_name = 'data/melbGrid.json'
+        sentiment_dic_file_name = "data/AFINN.txt"
+
+    main(rank, size, tweets_file, grid_file_name, sentiment_dic_file_name)
+    # if rank == 0:
+    #     # read grid data
+    #     regions = read_grid_info(grid_file_name)
+    #     sentiment_dic = read_sentiment_data(sentiment_dic_file_name)
+    #     max_sentiment_word_len = max([len(i.split()) for i in sentiment_dic.keys()])
+    # else:
+    #     regions, sentiment_dic, max_sentiment_word_len = None, None, None
+    # # broadcast grid data
+    # regions = comm.bcast(regions, root=0)
+    # sentiment_dic = comm.bcast(sentiment_dic, root=0)
+    # max_sentiment_word_len = comm.bcast(max_sentiment_word_len, root=0)
+    #
+    # if not regions or not sentiment_dic:
+    #     raise FileNotFoundError()
+    #
+    # # read sentiment file
+    # if rank == 0:
+    #     with open(tweets_file, 'r', encoding='utf-8') as twitter_file:
+    #         # read total_rows and offset info
+    #         twitters_data = next(twitter_file)
+    #         i = 0
+    #         while twitters_data:
+    #             twitters_data = list(islice(twitter_file, BATCH_SIZE))
+    #             comm.send(twitters_data, dest=i % (size - 1) + 1, tag=4)
+    #             i += 1
+    #     for i in range(1, size):
+    #         comm.send(None, dest=i, tag=4)
+    #
+    # else:
+    #     while True:
+    #         # process twitters data
+    #         twitters_data = comm.recv(source=0, tag=4)
+    #
+    #         if twitters_data is None:
+    #             break
+    #
+    #         twitters_data = list(map(read_twitters_data, twitters_data))
+    #         for i in twitters_data:
+    #             try:
+    #                 curr_message = Message(i)
+    #                 curr_message.cal_sentiment_score(sentiment_dic, max_sentiment_word_len)
+    #                 curr_message.update_score(regions)
+    #             except:
+    #                 continue
+    #
+    # # collect and sum up information
+    # regions = comm.gather(regions, root=0)
+    # if rank == 0:
+    #     sum_regions(regions)
