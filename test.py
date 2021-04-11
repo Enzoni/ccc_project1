@@ -58,7 +58,7 @@ class Message:
         :param regions: list(Region)
         """
         for region in regions:
-            if region.xmin <= self.coordinates[0] < region.xmax and region.ymin < self.coordinates[1] <= region.ymax:
+            if region.xmin < self.coordinates[0] <= region.xmax and region.ymin < self.coordinates[1] <= region.ymax:
                 region.count += 1
                 region.score += self.sentiment_score
 
