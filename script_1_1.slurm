@@ -6,15 +6,15 @@
 #SBATCH --partition=physical
 
 # The name of the job:
-#SBATCH --job-name="MelbTwitter"
+#SBATCH --job-name="MelbTwitter_1_1"
 
 # The project ID which this job should run under:
 #SBATCH --account="COMP90024"
 
-#SBATCH --nodes=2
-#SBATCH --ntasks=4
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=0-0:04:00
+#SBATCH --time=0-0:10:00
 
 # check that the script is launched with sbatch
 if [ "x$SLURM_JOB_ID" == "x" ]; then
@@ -27,7 +27,7 @@ fi
 # The modules to load:
 module load gcc/8.3.0 openmpi/3.1.4 python/3.7.4
 
-echo "nodes=2 ntasks=4"
+echo "nodes=1 ntasks=1"
 # The job command(s):
 echo "tinyTwitter output:"
 time mpirun python3 test.py melbGrid.json AFINN.txt tinyTwitter.json
