@@ -208,9 +208,9 @@ if __name__ == '__main__':
     size = comm.Get_size()
 
     try:
-        tweets_file = sys.argv[1]
-        grid_file_name = 'melbGrid.json'
-        sentiment_dic_file_name = "data/AFINN.txt"
+        grid_file_name = sys.argv[1]
+        sentiment_dic_file_name = sys.argv[2]
+        tweets_file = sys.argv[3]
     except:
         tweets_file = 'data/smallTwitter.json'
         grid_file_name = 'data/melbGrid.json'
