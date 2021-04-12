@@ -1,0 +1,67 @@
+nodes=1 ntasks=1
+tinyTwitter output:
+Cell    #Total Tweets    #Overal Sentiment Score 
+A1             0                   0            
+A2             0                   0            
+A3             0                   0            
+A4             0                   0            
+B1             0                   0            
+B2             0                   0            
+B3             0                   0            
+B4             0                   0            
+C1             0                   0            
+C2            19                  33            
+C3             0                   0            
+C4             0                   0            
+C5             0                   0            
+D3             0                   0            
+D4             0                   0            
+D5             0                   0            
+
+real	0m0.592s
+user	0m0.143s
+sys	0m0.201s
+smallTwitter output:
+Cell    #Total Tweets    #Overal Sentiment Score 
+A1             0                   0            
+A2             0                   0            
+A3             0                   0            
+A4             0                   0            
+B1             0                   0            
+B2             0                   0            
+B3             0                   0            
+B4             0                   0            
+C1             0                   0            
+C2           9746                9643           
+C3             0                   0            
+C4             0                   0            
+C5             0                   0            
+D3             0                   0            
+D4             0                   0            
+D5             0                   0            
+
+real	0m1.285s
+user	0m0.953s
+sys	0m0.213s
+bigTwitter output:
+Cell    #Total Tweets    #Overal Sentiment Score 
+A1           2752                 754           
+A2           4904                4095           
+A3           5824                2670           
+A4            381                 56            
+B1           21232               11516          
+B2          107386               31507          
+B3           34494               20051          
+B4           6643                5679           
+C1           10530               7541           
+C2          246828              189787          
+C3           69901               40978          
+C4           26097               19300          
+C5           5581                2593           
+D3           16220               7670           
+D4           16536               9359           
+D5           4705                3733           
+
+real	5m45.352s
+user	5m31.561s
+sys	0m12.729s
